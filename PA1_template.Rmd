@@ -9,6 +9,26 @@ output:
 ## Loading and preprocessing the data
 
 
+Firstly I load the dataset from the zip files. 
+```{r echo = TRUE}
+library(readr)
+data <- read_csv("activity.zip")
+```
+
+Secondly I wanted to show some first elements of this dataset to get to know something about them. Of course I used the 'summary' and 'str' function to see some basics statistics.
+```{r echo = TRUE}
+summary(data)
+head(data)
+str(data)
+```
+
+Now I know that this dataset have a lot of NA rows. My goal is to recognize why this value is so common. Below I show how many this NA value are. 
+
+```{r echo = TRUE}
+Percentage_NA <- length(which(is.na(data$steps)))/length(data$steps)
+print(Percentage_NA)
+
+```
 
 ## What is mean total number of steps taken per day?
 
