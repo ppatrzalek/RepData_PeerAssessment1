@@ -9,10 +9,10 @@ output:
 ## Loading and preprocessing the data
 
 
+Firstly I load the dataset from the zip files. 
 
 ```r
 library(readr)
-
 data <- read_csv("activity.zip")
 ```
 
@@ -25,6 +25,7 @@ data <- read_csv("activity.zip")
 ## )
 ```
 
+Secondly I wanted to show some first elements of this dataset to get to know something about them. Of course I used the 'summary' and 'str' function to see some basics statistics.
 
 ```r
 summary(data)
@@ -74,8 +75,58 @@ str(data)
 ##   .. )
 ```
 
+```r
+dim(data)
+```
+
+```
+## [1] 17568     3
+```
+
+Now I know that this dataset have a lot of NA rows. My goal is to recognize why this value is so common. Below I show how many this NA value are. 
+
+
+```r
+Percentage_NA <- length(which(is.na(data$steps)))/length(data$steps)
+print(Percentage_NA)
+```
+
+```
+## [1] 0.1311475
+```
 
 ## What is mean total number of steps taken per day?
+
+
+```r
+library(dplyr)
+```
+
+```
+## 
+## Attaching package: 'dplyr'
+```
+
+```
+## The following objects are masked from 'package:stats':
+## 
+##     filter, lag
+```
+
+```
+## The following objects are masked from 'package:base':
+## 
+##     intersect, setdiff, setequal, union
+```
+
+```r
+sum_perday <- data %>%
+  group_by(date) %>%
+  summarise(sum_perday = sum(steps, na.rm = TRUE))
+
+mean_steps <- summarize(sum_perday, mean_perday = mean(sum_perday, na.rm = TRUE))
+```
+Answer: Mean total number of steps taken per day is equal to 9354.2295082.
 
 
 

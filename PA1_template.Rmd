@@ -20,6 +20,7 @@ Secondly I wanted to show some first elements of this dataset to get to know som
 summary(data)
 head(data)
 str(data)
+dim(data)
 ```
 
 Now I know that this dataset have a lot of NA rows. My goal is to recognize why this value is so common. Below I show how many this NA value are. 
@@ -29,10 +30,21 @@ Percentage_NA <- length(which(is.na(data$steps)))/length(data$steps)
 print(Percentage_NA)
 
 ```
+The reason of so many NA values in this dataset is very simple - in that days this device didn't work or was turned off. 
+
 
 ## What is mean total number of steps taken per day?
 
+```{r echo = TRUE, }
+library(dplyr)
 
+sum_perday <- data %>%
+  group_by(date) %>%
+  summarise(sum_perday = sum(steps, na.rm = TRUE))
+
+mean_steps <- summarize(sum_perday, mean_perday = round(mean(sum_perday, na.rm = TRUE), 2))
+```
+Answer: Mean total number of steps taken per day is equal to `r mean_steps`.
 
 ## What is the average daily activity pattern?
 
@@ -40,6 +52,9 @@ print(Percentage_NA)
 
 ## Imputing missing values
 
-
+```{r echo = TRUE}
+data_imput <- filter(data, !is.na(steps))
+head(data_imput)
+```
 
 ## Are there differences in activity patterns between weekdays and weekends?
