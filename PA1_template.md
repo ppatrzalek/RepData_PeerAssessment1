@@ -1,8 +1,10 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
+title: 'Reproducible Research: Peer Assessment 1'
+output:
   html_document:
-    keep_md: true
+    keep_md: yes
+  pdf_document: default
+  word_document: default
 ---
 
 
@@ -94,6 +96,8 @@ print(Percentage_NA)
 ```
 ## [1] 0.1311475
 ```
+The reason of so many NA values in this dataset is very simple - in that days this device didn't work or was turned off. 
+
 
 ## What is mean total number of steps taken per day?
 
@@ -124,18 +128,84 @@ sum_perday <- data %>%
   group_by(date) %>%
   summarise(sum_perday = sum(steps, na.rm = TRUE))
 
-mean_steps <- summarize(sum_perday, mean_perday = mean(sum_perday, na.rm = TRUE))
+mean_steps <- summarize(sum_perday, mean_perday = round(mean(sum_perday, na.rm = TRUE), 2))
 ```
-Answer: Mean total number of steps taken per day is equal to 9354.2295082.
-
-
+Answer: Mean total number of steps taken per day is equal to 9354.23.
 
 ## What is the average daily activity pattern?
 
+
+```r
+library(ggplot2)
+```
+
+```
+## Registered S3 methods overwritten by 'ggplot2':
+##   method         from 
+##   [.quosures     rlang
+##   c.quosures     rlang
+##   print.quosures rlang
+```
+
+```r
+daily_activity <- data %>% 
+  group_by(interval) %>%
+  summarise(mean_steps = mean(steps, na.rm = TRUE))
+
+ggplot(data = daily_activity, mapping = aes(x = interval, y = mean_steps)) +
+  geom_line(colour = "red") +
+  labs(x = "Interval", y = "Average steps", title = "Average daily activity pattern") +
+  theme_bw()
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
 
 
 ## Imputing missing values
 
 
+```r
+data_imput <- data %>%
+  left_join(., daily_activity, by = c("interval")) %>%
+  transform(steps = ifelse(is.na(steps), round(mean_steps, 0), steps)) %>%
+  select(-mean_steps)
+```
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+
+
+
+```r
+library(lubridate)
+```
+
+```
+## 
+## Attaching package: 'lubridate'
+```
+
+```
+## The following object is masked from 'package:base':
+## 
+##     date
+```
+
+```r
+data_week <- data_imput %>%
+  mutate(wday = wday(date, week_start = getOption("lubridate.week.start", 1)),
+         type = ifelse(wday %in% c(6, 7), "weekend", "weekdays")) %>%
+  group_by(interval, type) %>%
+  summarise(mean_steps = mean(steps, na.rm = TRUE))
+
+ggplot(data = data_week, mapping = aes(x = interval, y = mean_steps)) +
+  geom_line(colour = "red") +
+  labs(x = "Interval", y = "Average steps", title = "Differences in activity patterns \nbetween weekdays and weekends") +
+  facet_grid(. ~ type) +
+  theme_bw()
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
+
+
+

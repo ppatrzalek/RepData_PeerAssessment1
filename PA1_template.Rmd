@@ -1,8 +1,10 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
+title: 'Reproducible Research: Peer Assessment 1'
+output:
   html_document:
-    keep_md: true
+    keep_md: yes
+  pdf_document: default
+  word_document: default
 ---
 
 
@@ -48,13 +50,52 @@ Answer: Mean total number of steps taken per day is equal to `r mean_steps`.
 
 ## What is the average daily activity pattern?
 
+```{r echo = TRUE}
+library(ggplot2)
+
+daily_activity <- data %>% 
+  group_by(interval) %>%
+  summarise(mean_steps = mean(steps, na.rm = TRUE))
+
+ggplot(data = daily_activity, mapping = aes(x = interval, y = mean_steps)) +
+  geom_line(colour = "red") +
+  labs(x = "Interval", y = "Average steps", title = "Average daily activity pattern") +
+  theme_bw()
+
+```
 
 
 ## Imputing missing values
 
 ```{r echo = TRUE}
-data_imput <- filter(data, !is.na(steps))
-head(data_imput)
+data_imput <- data %>%
+  left_join(., daily_activity, by = c("interval")) %>%
+  transform(steps = ifelse(is.na(steps), round(mean_steps, 0), steps)) %>%
+  select(-mean_steps)
+
 ```
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+
+
+```{r echo = TRUE}
+library(lubridate)
+
+data_week <- data_imput %>%
+  mutate(wday = wday(date, week_start = getOption("lubridate.week.start", 1)),
+         type = ifelse(wday %in% c(6, 7), "weekend", "weekdays")) %>%
+  group_by(interval, type) %>%
+  summarise(mean_steps = mean(steps, na.rm = TRUE))
+
+ggplot(data = data_week, mapping = aes(x = interval, y = mean_steps)) +
+  geom_line(colour = "red") +
+  labs(x = "Interval", y = "Average steps", title = "Differences in activity patterns \nbetween weekdays and weekends") +
+  facet_grid(. ~ type) +
+  theme_bw()
+
+
+```
+
+
+
