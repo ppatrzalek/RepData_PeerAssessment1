@@ -10,53 +10,81 @@ output:
 
 ## Loading and preprocessing the data
 
-
-Firstly I load the dataset from the zip files. 
-```{r echo = TRUE}
+First, I load the dataset from the zip file. 
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 library(readr)
+```
+
+```{r echo = TRUE}
 data <- read_csv("activity.zip")
 ```
 
-Secondly I wanted to show some first elements of this dataset to get to know something about them. Of course I used the 'summary' and 'str' function to see some basics statistics.
+In this step I don't do anything with data. I think that the preprocessing isn't important right now. 
+
+Second, I would like to know how look elements of this dataset to get to know something about them. It's why I use these functions - in my opinion knowledge of data is an important element in the data analysis.
+
 ```{r echo = TRUE}
-summary(data)
 head(data)
-str(data)
 dim(data)
+summary(data)
+str(data)
 ```
-
-Now I know that this dataset have a lot of NA rows. My goal is to recognize why this value is so common. Below I show how many this NA value are. 
-
-```{r echo = TRUE}
-Percentage_NA <- length(which(is.na(data$steps)))/length(data$steps)
-print(Percentage_NA)
-
-```
-The reason of so many NA values in this dataset is very simple - in that days this device didn't work or was turned off. 
-
 
 ## What is mean total number of steps taken per day?
 
-```{r echo = TRUE, }
-library(dplyr)
+First of all I prepare dataset with sum of steps per day. I add the index Name equal to `Original` because later it help me with comparing the imputation and original dataset.
 
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+library(dplyr)
+```
+
+
+```{r echo = TRUE}
 sum_perday <- data %>%
   group_by(date) %>%
-  summarise(sum_perday = sum(steps, na.rm = TRUE))
-
-mean_steps <- summarize(sum_perday, mean_perday = round(mean(sum_perday, na.rm = TRUE), 2))
+  summarise(sum_perday = sum(steps, na.rm = TRUE)) %>%
+  mutate(Name = "Original")    
 ```
-Answer: Mean total number of steps taken per day is equal to `r mean_steps`.
+
+
+After this step I visualize the histogram of total number of steps taken each day.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+library(ggplot2)
+```
+
+
+```{r echo = TRUE}
+ggplot(data = sum_perday) +
+        geom_histogram(mapping = aes(x = sum_perday)) +
+        labs(x = "Steps", title = "Total number of steps taken each day") +
+        theme_bw()
+ 
+```
+
+It seems that the most common value is zero, but we know abour many NA values in this dataset and probably it's why this values are so common. Next very often values is abotu 10 000 steps so in my opinion owner of this device has to be an active person. 
+
+```{r echo = TRUE}
+
+stat_steps <- summarize(sum_perday, 
+        mean_perday = round(mean(sum_perday, na.rm = TRUE), 2),
+        median_perday = median(sum_perday, na.rm = TRUE)) %>%
+        mutate(Name = "Original")
+
+print(stat_steps)
+```
 
 ## What is the average daily activity pattern?
 
+Below I prepare the data to find some specific pattern of daily activity.
 ```{r echo = TRUE}
-library(ggplot2)
-
 daily_activity <- data %>% 
   group_by(interval) %>%
   summarise(mean_steps = mean(steps, na.rm = TRUE))
+```
 
+
+Also I create time series visualization to show this average pattern. 
+```{r echo = TRUE}
 ggplot(data = daily_activity, mapping = aes(x = interval, y = mean_steps)) +
   geom_line(colour = "red") +
   labs(x = "Interval", y = "Average steps", title = "Average daily activity pattern") +
@@ -64,37 +92,94 @@ ggplot(data = daily_activity, mapping = aes(x = interval, y = mean_steps)) +
 
 ```
 
+In my opinion person who is device owner has to work between 10 a.m. and 6 p.m. Probably this person goes to work by car because about 6 p.m. we can see low activity - may be this person goes to home by car and then relaxes in the couch. Of course we see high activity in the morning which starts about 7 a.m. - im my opinion this person could be a amatour runner.
+
+
+```{r echo = TRUE}
+
+daily_activity[which.max(daily_activity$mean_steps),]
+
+```
+The maximum value of number of steps is on the morning - may be during the morning jogging.
 
 ## Imputing missing values
+
+This dataset have a lot of NA rows. My goal is to recognize why this value is so common. Below I show how many this NA value are. 
+
+```{r echo = TRUE}
+data_NA <- length(is.na(data$steps))
+Percentage_NA <- length(which(is.na(data$steps)))/length(data$steps)
+
+print(list(data_NA, Percentage_NA))
+
+```
+
+The reason of so many NA values in this dataset is very simple - in that days this device didn't work or was turned off. To manage with NA values I replace them by the average of number of steps in specific interval. In this moment very usefull is the `daily_activity` dataset which I created in the last step.
 
 ```{r echo = TRUE}
 data_imput <- data %>%
   left_join(., daily_activity, by = c("interval")) %>%
   transform(steps = ifelse(is.na(steps), round(mean_steps, 0), steps)) %>%
   select(-mean_steps)
-
 ```
 
-## Are there differences in activity patterns between weekdays and weekends?
 
+Again I calculate basic statistics of number of steps (median and mean). I show the results in one table to present differences between them.  
+```{r echo = TRUE}
+sum_perday_imput <- data_imput %>%
+  group_by(date) %>%
+  summarise(sum_perday = sum(steps)) %>%
+  mutate(Name = "Imputation")        
+        
+stat_steps_imput <- summarize(sum_perday_imput, 
+        mean_perday = round(mean(sum_perday), 2),
+        median_perday = median(sum_perday)) %>%
+        mutate(Name = "Imputation")
 
+print(union(stat_steps, stat_steps_imput))
+```
+We see that after imputation the median and the mean increse. It's normal because we replace NA values by the numeric value so I think that this is very intuitive. Moreover a mean value and a median value are similar. The reason of this is very simple - I replace the NA element by the average value of each interval so now a median and a mean have to be very similar.
 
 ```{r echo = TRUE}
-library(lubridate)
+data_perday <- union(sum_perday, sum_perday_imput) 
 
+ggplot(data = data_perday) +
+        geom_histogram(mapping = aes(x = sum_perday)) +
+        facet_grid(. ~ Name) +
+        labs(x = "Steps") +
+        labs(title = "Total number of steps taken each day") +
+        labs(subtitle = "Comparison") +
+        theme_bw()
+ 
+```
+
+Histogram of element is very intuitive - last time we have many NA values.
+
+## Are there differences in activity patterns between weekdays and weekends?
+To analyze the differences between weekdays and weekends activity patterns I do some calculation belows.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+library(lubridate)
+```
+
+```{r echo = TRUE}
 data_week <- data_imput %>%
   mutate(wday = wday(date, week_start = getOption("lubridate.week.start", 1)),
-         type = ifelse(wday %in% c(6, 7), "weekend", "weekdays")) %>%
+         type = ifelse(wday %in% c(6, 7), "weekend", "weekdays"))
+
+summary_week <- data_week %>%
   group_by(interval, type) %>%
   summarise(mean_steps = mean(steps, na.rm = TRUE))
 
-ggplot(data = data_week, mapping = aes(x = interval, y = mean_steps)) +
+
+```
+
+The most important thing to show differences is visualization. It show that on weekend this person has more activity during the all day than on weekdays. The next difference is that on the weekend morning this person has lower numer of steps than in weekdays so may be at weekend this person runs rarely.
+```{r echo = TRUE}
+ggplot(data = summary_week, mapping = aes(x = interval, y = mean_steps)) +
   geom_line(colour = "red") +
-  labs(x = "Interval", y = "Average steps", title = "Differences in activity patterns \nbetween weekdays and weekends") +
+  labs(x = "Interval", y = "Number of steps", title = "Differences in activity patterns") +
   facet_grid(. ~ type) +
   theme_bw()
-
-
 ```
 
 
